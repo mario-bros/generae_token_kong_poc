@@ -78,7 +78,34 @@ def login():
 
 @app.route('/api/djp', methods=['GET'])
 def index():
-    return jsonify({'users': users}), HTTP_OK
+    URL_DJP = os.getenv('URL_DJP')
+    try:
+        response = requests.get(URL_DJP)
+        jsonResp = response.json()
+        # jsonResp["data"]
+        print(jsonResp)
+        return jsonResp, HTTP_OK
+
+        # response.raise_for_status()
+
+        # token = create_access_token(identity=jsonResp["message"])
+        # body = {'message': 'Login succeeded', 'token': token}
+        # return jsonify(body), HTTP_OK
+
+    except requests.exceptions.ConnectionError as ece:
+        print("Connection Error:", ece)
+        body = {'message': 'Connection Error'}
+        return jsonify(body), HTTP_INTENAL_ERR
+    except requests.exceptions.Timeout as et:
+        print("Timeout Error:", et)
+        body = {'message': 'Timeout Error'}
+        return jsonify(body), HTTP_INTENAL_ERR
+    except requests.exceptions.RequestException as e:
+        print("Some Ambiguous Exception:", e)
+        body = {'message': 'Some Ambiguous Exception'}
+        return jsonify(body), HTTP_INTENAL_ERR
+    
+    # return jsonify({'users': users}), HTTP_OK
 
 
 if __name__ == '__main__':

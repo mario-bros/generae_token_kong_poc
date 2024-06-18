@@ -62,7 +62,7 @@ def login():
 
     url_auth = os.getenv('URL_AUTH')
     try:
-        response = requests.post(url_auth, json={"key": request_body['username'], "password": request_body['password']})
+        response = requests.post(url_auth, json={"username": request_body['username'], "password": request_body['password']})
         jsonResp = response.json()
         # jsonResp["data"]
         print(jsonResp)

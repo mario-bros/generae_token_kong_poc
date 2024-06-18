@@ -17,8 +17,7 @@ HTTP_UNAUTHORIZED = 401
 HTTP_INTENAL_ERR = 500
 
 users = [
-    {'id': 1, 'username': 'Taro', 'email': 'taro@email.com', 'password': 'taro'},
-    {'id': 2, 'username': 'Hanako', 'email': 'hanako@email.com', 'password': 'hanako'}
+    {'id': 1, 'username': 'bPJSTk', 'password': 'BPJSTKdev2024'},
 ]
 
 
@@ -60,31 +59,22 @@ def login():
         body = {'message': 'Missing username or password in request'}
         return jsonify(body), HTTP_BAD_REQUEST
 
-    url_auth = os.getenv('URL_AUTH')
-    try:
-        response = requests.post(url_auth, json={"username": request_body['username'], "password": request_body['password']})
-        jsonResp = response.json()
-        # jsonResp["data"]
-        print(jsonResp)
+    auth_user = None
+    for user in users:
+        isMatchUser = user['username'] == request_body['username']
+        isMatchPassword = user['password'] == request_body['password']
+        if isMatchUser and isMatchPassword:
+            auth_user = user
+            break
 
-        response.raise_for_status()
+    if auth_user is None:
+        body = {'message': 'Login failure. Bad email or password'}
+        return jsonify(body), HTTP_UNAUTHORIZED
 
-        token = create_access_token(identity=jsonResp["message"])
-        body = {'message': 'Login succeeded', 'token': token}
-        return jsonify(body), HTTP_OK
-        
-    except requests.exceptions.ConnectionError as ece:
-        print("Connection Error:", ece)
-        body = {'message': 'Connection Error'}
-        return jsonify(body), HTTP_INTENAL_ERR
-    except requests.exceptions.Timeout as et:
-        print("Timeout Error:", et)
-        body = {'message': 'Timeout Error'}
-        return jsonify(body), HTTP_INTENAL_ERR
-    except requests.exceptions.RequestException as e:
-        print("Some Ambiguous Exception:", e)
-        body = {'message': 'Some Ambiguous Exception'}
-        return jsonify(body), HTTP_INTENAL_ERR
+    token = create_access_token(identity=auth_user['username'])
+    body = {'message': 'Login succeeded', 'token': token}
+    return jsonify(body), HTTP_OK
+
 
 @app.route('/api/djp', methods=['GET'])
 def index():

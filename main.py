@@ -1,13 +1,20 @@
+import os
 from flask import jsonify, request, Flask
 from flask_jwt_extended import (
     jwt_required,
     create_access_token,
     JWTManager
 )
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()  # take environment variables from .env.
+
 
 HTTP_OK = 200
 HTTP_BAD_REQUEST = 400
 HTTP_UNAUTHORIZED = 401
+HTTP_INTENAL_ERR = 500
 
 users = [
     {'id': 1, 'username': 'Taro', 'email': 'taro@email.com', 'password': 'taro'},
@@ -48,29 +55,36 @@ def login():
         body = {'message': 'Request body is empty'}
         return jsonify(body), HTTP_BAD_REQUEST
 
-    whitelist = {'email', 'password'}
+    whitelist = {'username', 'password'}
     if not request_body.keys() <= whitelist:
-        body = {'message': 'Missing email or password in request'}
+        body = {'message': 'Missing username or password in request'}
         return jsonify(body), HTTP_BAD_REQUEST
 
-    auth_user = None
-    for user in users:
-        isMatchEmail = user['email'] == request_body['email']
-        isMatchPassword = user['password'] == request_body['password']
-        if isMatchEmail and isMatchPassword:
-            auth_user = user
-            break
+    url_auth = os.getenv('URL_AUTH')
+    try:
+        response = requests.post(url_auth, json={"key": request_body['username'], "password": request_body['password']})
+        jsonResp = response.json()
+        # jsonResp["data"]
+        print(jsonResp)
 
-    if auth_user is None:
-        body = {'message': 'Login failure. Bad email or password'}
-        return jsonify(body), HTTP_UNAUTHORIZED
+        response.raise_for_status()
 
-    # token = create_access_token(identity=auth_user['username'], additional_headers=)
-    # token = create_access_token(identity=auth_user['username'])
-    token = create_access_token(identity=auth_user['message'])
-    body = {'message': 'Login succeeded', 'token': token}
-    return jsonify(body), HTTP_OK
-
+        token = create_access_token(identity=jsonResp["message"])
+        body = {'message': 'Login succeeded', 'token': token}
+        return jsonify(body), HTTP_OK
+        
+    except requests.exceptions.ConnectionError as ece:
+        print("Connection Error:", ece)
+        body = {'message': 'Connection Error'}
+        return jsonify(body), HTTP_INTENAL_ERR
+    except requests.exceptions.Timeout as et:
+        print("Timeout Error:", et)
+        body = {'message': 'Timeout Error'}
+        return jsonify(body), HTTP_INTENAL_ERR
+    except requests.exceptions.RequestException as e:
+        print("Some Ambiguous Exception:", e)
+        body = {'message': 'Some Ambiguous Exception'}
+        return jsonify(body), HTTP_INTENAL_ERR
 
 @app.route('/api/djp', methods=['GET'])
 def index():
